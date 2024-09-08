@@ -63,7 +63,7 @@ func (a *App) handleConfig(w http.ResponseWriter, req *http.Request) {
 
 	log.DefaultLogger.Info("Configuration updated", "config", config)
 
-	a.config = &config
+	a.UpdateConfig(config)
 
 	w.Header().Add("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode("{result: success}"); err != nil {
@@ -106,7 +106,7 @@ func (a *App) handleHealthQuery(w http.ResponseWriter, req *http.Request) {
 
 	log.DefaultLogger.Info("Handling CHR request", "url", req.URL.Path, "query", req.URL.Query(), "chr", chRule)
 
-	var rule CombinedHealthRule
+	var rule *CombinedHealthRule
 	found := false
 	for _, r := range config.Rules {
 		if r.UrlId == chRule {
@@ -201,10 +201,38 @@ func (a *App) handleHealthQuery(w http.ResponseWriter, req *http.Request) {
 
 	log.DefaultLogger.Info("Response body:", "body", string(body))
 
-	if err := json.NewEncoder(w).Encode("{result: success}"); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	w.Write(body)
+	// if err := json.NewEncoder(w).Encode(string(body)); err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+	w.WriteHeader(http.StatusOK)
+}
+
+func (a *App) handleExprVerify(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	var config AppConfig
+	if err := json.NewDecoder(req.Body).Decode(&config); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	log.DefaultLogger.Info("Verifying config", "config", config)
+
+	err := a.VerifyConfig(config)
+
+	if err != nil {
+		log.DefaultLogger.Error("Config verification failed", "error", err)
+		errStatus := "{result: failure, message: \"" + err.Error() + "\"}"
+		http.Error(w, errStatus, http.StatusInternalServerError)
+		return
+	}
+
+	w.Write([]byte("{result: success}"))
+
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -213,5 +241,6 @@ func (a *App) registerRoutes(mux *mux.Router) {
 	mux.HandleFunc("/ping", a.handlePing)
 	mux.HandleFunc("/echo", a.handleEcho)
 	mux.HandleFunc("/config", a.handleConfig)
+	mux.HandleFunc("/expr-verify", a.handleExprVerify)
 	mux.HandleFunc("/health/{chrule}", a.handleHealthQuery)
 }

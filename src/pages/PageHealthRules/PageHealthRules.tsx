@@ -8,6 +8,8 @@ import { defaultAppConfig, defaultCombinedHealthRule, defaultCombinedHealthRuleN
 import _ from 'lodash';
 import { getUser, slugify } from "utils/utils";
 import { updateAppBackendConfig, updatePlugin } from "components/AppConfigComponent";
+import { FetchResponse, getBackendSrv } from "@grafana/runtime";
+import { Observable } from "rxjs";
 
 export const PageHealthRules = (pageContext: any) => {
 
@@ -18,7 +20,7 @@ export const PageHealthRules = (pageContext: any) => {
   const initialAppConfig: AppConfig = defaultAppConfig;
   initialAppConfig.rules = pluginProps?.meta.jsonData?.rules !== undefined ? pluginProps?.meta.jsonData.rules : [];
   initialAppConfig.apiToken = pluginProps?.meta.jsonData?.apiToken;
-  
+
   const [appConfig, setAppConfig] = useState<AppConfig>(initialAppConfig);
   const [selectedCHR, setSelectedCHR] = useState<number>(0);
 
@@ -72,6 +74,18 @@ export const PageHealthRules = (pageContext: any) => {
     updateAppBackendConfig(pluginProps?.meta.id || '', appConfig);
   };
 
+  const verifyAppConfig = () => {
+    const response = getBackendSrv().post(`/api/plugins/${pluginProps?.meta.id}/verify`, appConfig);
+    response.then((response) => {
+      if (response.status === 'failure') {
+
+      } else {
+        
+      }
+    })
+  
+  };
+  
   return (
     <Stack direction='column' gap={1} justifyContent='start'>
       <Stack direction='row' gap={1} justifyContent='start'>
@@ -84,6 +98,7 @@ export const PageHealthRules = (pageContext: any) => {
         />
         <Button onClick={addCHR}>Add</Button>
         <Button onClick={deleteCHR}>Delete</Button>
+        <Button onClick={verifyAppConfig}>Verify</Button>
         <Button onClick={saveAppConfig}>Save</Button>
       </Stack>
       <Divider direction='horizontal' spacing={1} />
@@ -95,4 +110,9 @@ export const PageHealthRules = (pageContext: any) => {
     </Stack>
   );
 }; 
+
+
+function lastValueFrom(response: Observable<FetchResponse<unknown>>) {
+  throw new Error("Function not implemented.");
+}
 

@@ -1,17 +1,21 @@
 package main
 
+import "github.com/google/cel-go/cel"
+
 type AppConfig struct {
-	Rules          []CombinedHealthRule `json:"rules"`
-	BackendHostUrl string               `json:"backendHostUrl"`
-	ApiToken       string               `json:"apiToken"`
+	Rules          []*CombinedHealthRule `json:"rules"`
+	BackendHostUrl string                `json:"backendHostUrl"`
+	ApiToken       string                `json:"apiToken"`
 }
 
 type CombinedHealthRule struct {
-	Name                     string            `json:"name"`       // combined HR name
-	UrlId                    string            `json:"urlId"`      // under this, result will be visible
-	Datasource               SelectableValue   `json:"datasource"` // datasource to use to pull individual HR's
-	HealthRuleQueries        []HealthRuleQuery `json:"healthRuleQueries"`
-	CombinedHealthExpression string            `json:"combinedHealthExpression"`
+	Name                     string             `json:"name"`       // combined HR name
+	UrlId                    string             `json:"urlId"`      // under this, result will be visible
+	Datasource               SelectableValue    `json:"datasource"` // datasource to use to pull individual HR's
+	HealthRuleQueries        []*HealthRuleQuery `json:"healthRuleQueries"`
+	CombinedHealthExpression string             `json:"combinedHealthExpression"`
+
+	CompiledExpression cel.Program
 }
 
 type HealthRuleQuery struct {
